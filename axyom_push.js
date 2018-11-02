@@ -32,27 +32,30 @@ function log() {
 //--------------------------------------------------------------------
 // Note class
  
-function Button(liveObject) 
+function Button(path, name, callback) 
 {
-    this.object = liveObject; // reference to the liveObject
+    this.liveObject = new LiveAPI(callback); // reference to the liveObject
+    this.liveObject.path = path;
+    this.liveObject.property = "value";
+    this.liveObject.name = name;
     this.state = 0; // On/Off
 }
  
 Button.prototype.set_light = function(val) 
 {
-    this.object.call("set_light", val);
+    this.liveObject.call("set_light", val);
 }
 
 Button.prototype.toggle = function() 
 {
     if(this.state == 0)
     {
-        this.object.call("set_light", 1);
+        this.liveObject.call("set_light", 1);
         this.state = 1;
     }
     else
     {
-        this.object.call("set_light", 0);
+        this.liveObject.call("set_light", 0);
         this.state = 0;
     }
 }
@@ -77,73 +80,80 @@ var selectButtons;
 var stateButtons;
 var Track_State_Buttons;
 var Track_Select_Buttons;
-var rightArrow;
-var leftArrow;
-var upArrow;
-var downArrow;
+var arrows;
 var ctr_path = "live_app control_surfaces 0";
 
 
 // initialisations
 function bang() 
 {
-    
-
     push = new LiveAPI(ctr_path);
     selectButtons = new Array();
     stateButtons = new Array();
+    arrows = new Array();
     
     // take control of select and state buttons
     Track_State_Buttons = push.call("get_control", "Track_State_Buttons");
     Track_Select_Buttons = push.call("get_control", "Track_Select_Buttons");
-    rightArrow = new LiveAPI(callback_rightArrow);
-    rightArrow.path = ctr_path + " controls 7";
-    rightArrow.property = "value";
-    leftArrow = new LiveAPI(callback_leftArrow);
-    leftArrow.path = ctr_path + " controls 6";
-    leftArrow.property = "value";
-    upArrow = new LiveAPI(callback_upArrow);
-    upArrow.path = ctr_path + " controls 4"; 
-	upArrow.property = "value";
-    downArrow = new LiveAPI(callback_downArrow); 
-    downArrow.path = ctr_path + " controls 5";
-    downArrow.property = "value";
-
-    //push.call("grab_control", push.call("get_control", "Up_Arrow"));
     
-    // store de api for the select and state buttons
+    //Arrows
+    for(var i=0; i<4; i++)
+    {
+        arrows.push(new Button(ctr_path+" controls "+(i+4), i, callback_arrows));
+    }
+
+    push.call("release_control", push.call("get_control", "Up_Arrow"));
+    
+    // select and state buttons
     for(var i=0; i<8; i++)
     {
-        selectButtons.push(new Button(new LiveAPI(ctr_path + " controls "+ (i + 44))));
-        stateButtons.push(new Button(new LiveAPI(ctr_path + " controls "+ (i + 44 + 9))));
+        selectButtons.push(new Button(ctr_path+" controls "+(i + 44), i, callback_select));
+        stateButtons.push(new Button(ctr_path + " controls "+ (i + 44 + 9), i, callback_state));
     }
-    
-    /*var foo = new LiveAPI(callback);
-	foo.path = "live_set tracks 2 mixer_device volume"
-	foo.property = "value";*/
 }
 
 // Arrow callbacks
-function callback_upArrow(args)
+function callback_arrows(args)
 {
-	outlet(0,args);
     log(args);
+    switch(this.name)
+    {
+        case 0:
+        {
+            
+        }
+        break;
+        case 1:
+        {
+            
+        }
+        break;
+        case 2:
+        {
+            
+        }
+        break;
+        case 3:
+        {
+            
+        }
+        default:
+        break;
+    };
 }
-function callback_downArrow(args)
+
+function callback_select(args)
 {
-	outlet(0,args);
-    log(args);
+    if (args[1] == 127)
+        selectButtons[this.name].toggle();
 }
-function callback_rightArrow(args)
+
+function callback_state(args)
 {
-	outlet(0,args);
-    log(args);
+    if (args[1] == 127)
+        stateButtons[this.name].toggle();
 }
-function callback_leftArrow(args)
-{
-	outlet(0,args);
-    log(args);
-}
+
 
 function release()
 {
@@ -161,27 +171,6 @@ function grab()
     {
         selectButtons[i].set_light("99");
         stateButtons[i].set_light("99");
-    }
-}
-
-function list() // midi cc to buttons
-{
-    log(arguments[0] + " " + arguments[1]);
-
-    if (arguments[1] == 127) // toggle button
-    {
-        var i
-        
-        if (arguments[0] < 100) // select buttons
-        {
-            var i = arguments[0]-20;
-            selectButtons[i].toggle();
-        }
-        else // state buttons
-        {
-            var i = arguments[0]-102;
-            stateButtons[i].toggle();
-        }
     }
 }
 
