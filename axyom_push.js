@@ -81,7 +81,9 @@ var stateButtons;
 var Track_State_Buttons;
 var Track_Select_Buttons;
 var arrows;
+var sessionBox;
 var ctr_path = "live_app control_surfaces 0";
+var liveSet;
 
 
 // initialisations
@@ -91,6 +93,8 @@ function bang()
     selectButtons = new Array();
     stateButtons = new Array();
     arrows = new Array();
+    sessionBox = new SessionBox();
+    liveSet = new LiveAPI("live_set");
     
     // take control of select and state buttons
     Track_State_Buttons = push.call("get_control", "Track_State_Buttons");
@@ -115,27 +119,42 @@ function bang()
 // Arrow callbacks
 function callback_arrows(args)
 {
-    log(args);
     switch(this.name)
     {
-        case 0:
+        case 0: //up
         {
-            
+            if (sessionBox.scene_offset > 0 && args[1] == 127)
+            {
+                sessionBox.scene_offset--;
+                log("scene off " + sessionBox.scene_offset);
+            }
         }
         break;
-        case 1:
+        case 1: //down
         {
-            
+            if (sessionBox.scene_offset < 8 && args[1] == 127)
+            {
+                sessionBox.scene_offset++;
+                log("scene off " + sessionBox.scene_offset);
+            }
         }
         break;
-        case 2:
+        case 2: //left
         {
-            
+            if (sessionBox.track_offset > 0 && args[1] == 127)
+            {
+                sessionBox.track_offset--;
+                log("track off " + sessionBox.track_offset);
+            } 
         }
         break;
-        case 3:
+        case 3: //right
         {
-            
+            if (sessionBox.track_offset < 8 && args[1] == 127)
+            {
+                sessionBox.track_offset++;
+                log("track off " + sessionBox.track_offset);
+            } 
         }
         default:
         break;
