@@ -87,6 +87,7 @@ var ctr_path = "live_app control_surfaces 0";
 var liveSet;
 var liveSetView;
 var alt_mode = 0; // boolean indicating that the current mode is alternative
+var track; //used to avoid the creation of LiveAPI objects in callbacks
 
 
 // inits
@@ -99,6 +100,7 @@ function init()
     sessionBox = new SessionBox();
     liveSet = new LiveAPI("live_set");
     liveSetView = new LiveAPI("live_set view");
+    track = new LiveAPI("live_set tracks 0");
     
     // take control of select and state buttons
     Track_State_Buttons = push.call("get_control", "Track_State_Buttons");
@@ -123,7 +125,7 @@ function init()
 // Arrow callbacks
 function callback_arrows(args)
 {
-    if (args[1] == 127 && alt_mode)
+    if (args[1] == 127 && alt_mode == 1)
     {
         var scenesLen, tracksLen;
         scenesLen = liveSet.get("scenes").length/2;
@@ -136,7 +138,7 @@ function callback_arrows(args)
                 if (sessionBox.scene_offset > 0)
                 {
                     sessionBox.scene_offset--;
-                    log("scene off " + sessionBox.scene_offset);
+                    //log("scene off " + sessionBox.scene_offset);
                 }
             }
             break;
@@ -145,7 +147,7 @@ function callback_arrows(args)
                 if (sessionBox.scene_offset < scenesLen-1)
                 {
                     sessionBox.scene_offset++;
-                    log("scene off " + sessionBox.scene_offset);
+                    //log("scene off " + sessionBox.scene_offset);
                 }
             }
             break;
@@ -154,7 +156,7 @@ function callback_arrows(args)
                 if (sessionBox.track_offset > 0)
                 {
                     sessionBox.track_offset--;
-                    log("track off " + sessionBox.track_offset);
+                    //log("track off " + sessionBox.track_offset);
                 } 
             }
             break;
@@ -163,7 +165,7 @@ function callback_arrows(args)
                 if (sessionBox.track_offset < tracksLen-1)
                 {
                     sessionBox.track_offset++;
-                    log("track off " + sessionBox.track_offset);
+                    //log("track off " + sessionBox.track_offset);
                 } 
             }
             default:
@@ -174,7 +176,7 @@ function callback_arrows(args)
 
 function callback_select(args)
 {
-    if (args[1] == 127 && alt_mode)
+    if (args[1] == 127 && alt_mode == 1)
     {
         var visible_tracks = liveSet.get("visible_tracks");
         var index = this.name + sessionBox.track_offset;
@@ -192,14 +194,14 @@ function callback_select(args)
 
 function callback_state(args)
 {
-    if (args[1] == 127 && alt_mode)
+    if (args[1] == 127 && alt_mode == 1)
     {
         var index = this.name + sessionBox.track_offset;
         var visible_tracks = liveSet.get("visible_tracks");
         if (index < visible_tracks.length)
         {
             //stateButtons[this.name].toggle();
-            track = new LiveAPI("live_set tracks " + index)
+            track.path = "live_set tracks " + index;
             var muted = track.get("mute");
             track.set("mute", 1-muted);
         }
@@ -231,12 +233,15 @@ function update()
     var visible_tracks = liveSet.get("visible_tracks");
     var selected_track = liveSetView.get("selected_track");
     var tracks_to_show = visible_tracks.length/2-sessionBox.track_offset;
+
+    //log(selected_track);
     
-    //select
+    
     for(var i=0; i<tracks_to_show; i++)
     {   
-        track = new LiveAPI("live_set tracks " + (i+sessionBox.track_offset));
-        
+        track.path = "live_set tracks " + (i+sessionBox.track_offset);
+            
+        //select
         if (track.id == selected_track[1])
         {
             selectButtons[i].set_light(selectButtons[i].colorOn);
@@ -245,12 +250,8 @@ function update()
         {
             selectButtons[i].set_light(selectButtons[i].colorOff);
         }
-    }
 
-    //mute
-    for(var i=0; i<tracks_to_show; i++)
-    {
-        track = new LiveAPI("live_set tracks " + (i+sessionBox.track_offset))
+        //mute
         var muted = track.get("mute");
         
         if (muted == 1)
@@ -260,7 +261,7 @@ function update()
         else
         {
             stateButtons[i].set_light(stateButtons[i].colorOn);
-        }    
+        } 
     }
 
     // turn off the other pads
