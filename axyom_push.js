@@ -32,13 +32,15 @@ function log() {
 //--------------------------------------------------------------------
 // Note class
  
-function Button(path, name, callback) 
+function Button(path, name, callback, colorOn, colorOff) 
 {
     this.liveObject = new LiveAPI(callback); // reference to the liveObject
     this.liveObject.path = path;
     this.liveObject.property = "value";
     this.liveObject.name = name;
     this.state = 0; // On/Off
+    this.colorOn = colorOn;
+    this.colorOff = colorOff;
 }
  
 Button.prototype.set_light = function(val) 
@@ -50,12 +52,12 @@ Button.prototype.toggle = function()
 {
     if(this.state == 0)
     {
-        this.liveObject.call("set_light", 1);
+        this.liveObject.call("set_light", this.colorOn);
         this.state = 1;
     }
     else
     {
-        this.liveObject.call("set_light", 0);
+        this.liveObject.call("set_light", this.colorOff);
         this.state = 0;
     }
 }
@@ -84,6 +86,7 @@ var arrows;
 var sessionBox;
 var ctr_path = "live_app control_surfaces 0";
 var liveSet;
+var liveSetView;
 
 
 // initialisations
@@ -95,6 +98,7 @@ function bang()
     arrows = new Array();
     sessionBox = new SessionBox();
     liveSet = new LiveAPI("live_set");
+    liveSetView = new LiveAPI("live_set view");
     
     // take control of select and state buttons
     Track_State_Buttons = push.call("get_control", "Track_State_Buttons");
@@ -103,7 +107,7 @@ function bang()
     //Arrows
     for(var i=0; i<4; i++)
     {
-        arrows.push(new Button(ctr_path+" controls "+(i+4), i, callback_arrows));
+        arrows.push(new Button(ctr_path+" controls "+(i+4), i, callback_arrows, 1, 0));
     }
 
     push.call("release_control", push.call("get_control", "Up_Arrow"));
@@ -111,66 +115,97 @@ function bang()
     // select and state buttons
     for(var i=0; i<8; i++)
     {
-        selectButtons.push(new Button(ctr_path+" controls "+(i + 44), i, callback_select));
-        stateButtons.push(new Button(ctr_path + " controls "+ (i + 44 + 9), i, callback_state));
+        selectButtons.push(new Button(ctr_path+" controls "+(i + 44), i, callback_select, 10, 13));
+        stateButtons.push(new Button(ctr_path+" controls "+ (i + 44 + 9), i, callback_state, 97, 117));
     }
 }
 
 // Arrow callbacks
 function callback_arrows(args)
 {
-    switch(this.name)
+    if (args[1] == 127)
     {
-        case 0: //up
+        var scenesLen, tracksLen;
+        scenesLen = liveSet.get("scenes").length/2;
+        tracksLen = liveSet.get("visible_tracks").length/2;
+
+        switch(this.name)
         {
-            if (sessionBox.scene_offset > 0 && args[1] == 127)
+            case 0: //up
             {
-                sessionBox.scene_offset--;
-                log("scene off " + sessionBox.scene_offset);
+                if (sessionBox.scene_offset > 0)
+                {
+                    sessionBox.scene_offset--;
+                    log("scene off " + sessionBox.scene_offset);
+                }
             }
-        }
-        break;
-        case 1: //down
-        {
-            if (sessionBox.scene_offset < 8 && args[1] == 127)
+            break;
+            case 1: //down
             {
-                sessionBox.scene_offset++;
-                log("scene off " + sessionBox.scene_offset);
+                if (sessionBox.scene_offset < scenesLen-1)
+                {
+                    sessionBox.scene_offset++;
+                    log("scene off " + sessionBox.scene_offset);
+                }
             }
-        }
-        break;
-        case 2: //left
-        {
-            if (sessionBox.track_offset > 0 && args[1] == 127)
+            break;
+            case 2: //left
             {
-                sessionBox.track_offset--;
-                log("track off " + sessionBox.track_offset);
-            } 
-        }
-        break;
-        case 3: //right
-        {
-            if (sessionBox.track_offset < 8 && args[1] == 127)
+                if (sessionBox.track_offset > 0)
+                {
+                    sessionBox.track_offset--;
+                    log("track off " + sessionBox.track_offset);
+                } 
+            }
+            break;
+            case 3: //right
             {
-                sessionBox.track_offset++;
-                log("track off " + sessionBox.track_offset);
-            } 
+                if (sessionBox.track_offset < tracksLen-1)
+                {
+                    sessionBox.track_offset++;
+                    log("track off " + sessionBox.track_offset);
+                } 
+            }
+            default:
+            break;
         }
-        default:
-        break;
-    };
+    }
 }
 
 function callback_select(args)
 {
     if (args[1] == 127)
-        selectButtons[this.name].toggle();
+    {
+        var visible_tracks = liveSet.get("visible_tracks");
+        var index = this.name + sessionBox.track_offset;
+        index = 2*index + 1;
+        
+        if (index < visible_tracks.length)
+        {
+            //selectButtons[this.name].toggle();
+            liveSetView.set("selected_track", "id", visible_tracks[index]);
+        }
+        
+        update(); //not optimal but good enough
+    }    
 }
 
 function callback_state(args)
 {
     if (args[1] == 127)
-        stateButtons[this.name].toggle();
+    {
+        var index = this.name + sessionBox.track_offset;
+        var visible_tracks = liveSet.get("visible_tracks");
+        if (index < visible_tracks.length)
+        {
+            //stateButtons[this.name].toggle();
+            track = new LiveAPI("live_set tracks " + index)
+            var muted = track.get("mute");
+            track.set("mute", 1-muted);
+        }
+
+        update(); //not optimal but good enough
+    }
 }
 
 
@@ -186,10 +221,53 @@ function grab()
     push.call("grab_control", Track_Select_Buttons);
 
     // default light
-    for(var i=0; i<8; i++)
+    update();
+}
+
+function update()
+{
+    var visible_tracks = liveSet.get("visible_tracks");
+    var selected_track = liveSetView.get("selected_track");
+    var tracks_to_show = visible_tracks.length/2-sessionBox.track_offset;
+    log(selected_track);
+    
+    //select
+    for(var i=0; i<tracks_to_show; i++)
+    {   
+        track = new LiveAPI("live_set tracks " + (i+sessionBox.track_offset));
+        log(track.id);
+        
+        if (track.id == selected_track[1])
+        {
+            selectButtons[i].set_light(selectButtons[i].colorOn);
+        }
+        else
+        {
+            selectButtons[i].set_light(selectButtons[i].colorOff);
+        }
+    }
+
+    //mute
+    for(var i=0; i<tracks_to_show; i++)
     {
-        selectButtons[i].set_light("99");
-        stateButtons[i].set_light("99");
+        track = new LiveAPI("live_set tracks " + (i+sessionBox.track_offset))
+        var muted = track.get("mute");
+        
+        if (muted == 1)
+        {   
+            stateButtons[i].set_light(stateButtons[i].colorOff);
+        }
+        else
+        {
+            stateButtons[i].set_light(stateButtons[i].colorOn);
+        }    
+    }
+
+    // turn off the other pads
+    for (var i=tracks_to_show;i<8; i++)
+    {
+        stateButtons[i].set_light(0);
+        selectButtons[i].set_light(0);
     }
 }
 
