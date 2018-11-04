@@ -198,7 +198,8 @@ function callback_state(args)
     {
         var index = this.name + sessionBox.track_offset;
         var visible_tracks = liveSet.get("visible_tracks");
-        if (index < visible_tracks.length)
+
+        if (2*index+1 < visible_tracks.length)
         {
             //stateButtons[this.name].toggle();
             track.path = "live_set tracks " + index;
@@ -230,44 +231,46 @@ function grab()
 
 function update()
 {
-    var visible_tracks = liveSet.get("visible_tracks");
-    var selected_track = liveSetView.get("selected_track");
-    var tracks_to_show = visible_tracks.length/2-sessionBox.track_offset;
-
-    //log(selected_track);
-    
-    
-    for(var i=0; i<tracks_to_show; i++)
-    {   
-        track.path = "live_set tracks " + (i+sessionBox.track_offset);
-            
-        //select
-        if (track.id == selected_track[1])
-        {
-            selectButtons[i].set_light(selectButtons[i].colorOn);
-        }
-        else
-        {
-            selectButtons[i].set_light(selectButtons[i].colorOff);
-        }
-
-        //mute
-        var muted = track.get("mute");
-        
-        if (muted == 1)
-        {   
-            stateButtons[i].set_light(stateButtons[i].colorOff);
-        }
-        else
-        {
-            stateButtons[i].set_light(stateButtons[i].colorOn);
-        } 
-    }
-
-    // turn off the other pads
-    for (var i=tracks_to_show;i<8; i++)
+    if (alt_mode == 1)
     {
-        stateButtons[i].set_light(0);
-        selectButtons[i].set_light(0);
+        var visible_tracks = liveSet.get("visible_tracks");
+        var selected_track = liveSetView.get("selected_track");
+        var tracks_to_show = visible_tracks.length/2-sessionBox.track_offset;
+
+        //log(selected_track);   
+    
+        for(var i=0; i<tracks_to_show; i++)
+        {   
+            track.path = "live_set tracks " + (i+sessionBox.track_offset);
+            
+            //select
+            if (track.id == selected_track[1])
+            {
+                selectButtons[i].set_light(selectButtons[i].colorOn);
+            }
+            else
+            {
+                selectButtons[i].set_light(selectButtons[i].colorOff);
+            }
+
+            //mute
+            var muted = track.get("mute");
+            
+            if (muted == 1)
+            {   
+                stateButtons[i].set_light(stateButtons[i].colorOff);
+            }
+            else
+            {
+                stateButtons[i].set_light(stateButtons[i].colorOn);
+            } 
+        }
+
+        // turn off the other pads
+        for (var i=tracks_to_show;i<8; i++)
+        {
+            stateButtons[i].set_light(0);
+            selectButtons[i].set_light(0);
+        }
     }
 }
