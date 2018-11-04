@@ -1,5 +1,4 @@
 inlets = 1;
-outlets = 1;
 
 function log() {
   for(var i=0,len=arguments.length; i<len; i++) {
@@ -87,10 +86,11 @@ var sessionBox;
 var ctr_path = "live_app control_surfaces 0";
 var liveSet;
 var liveSetView;
+var alt_mode = 0; // boolean indicating that the current mode is alternative
 
 
-// initialisations
-function bang() 
+// inits
+function init() 
 {
     push = new LiveAPI(ctr_path);
     selectButtons = new Array();
@@ -123,7 +123,7 @@ function bang()
 // Arrow callbacks
 function callback_arrows(args)
 {
-    if (args[1] == 127)
+    if (args[1] == 127 && alt_mode)
     {
         var scenesLen, tracksLen;
         scenesLen = liveSet.get("scenes").length/2;
@@ -174,7 +174,7 @@ function callback_arrows(args)
 
 function callback_select(args)
 {
-    if (args[1] == 127)
+    if (args[1] == 127 && alt_mode)
     {
         var visible_tracks = liveSet.get("visible_tracks");
         var index = this.name + sessionBox.track_offset;
@@ -192,7 +192,7 @@ function callback_select(args)
 
 function callback_state(args)
 {
-    if (args[1] == 127)
+    if (args[1] == 127 && alt_mode)
     {
         var index = this.name + sessionBox.track_offset;
         var visible_tracks = liveSet.get("visible_tracks");
@@ -213,12 +213,14 @@ function release()
 {
     push.call("release_control", Track_State_Buttons);
     push.call("release_control", Track_Select_Buttons);
+    alt_mode = 0;
 }
 
 function grab()
 {
     push.call("grab_control", Track_State_Buttons);
     push.call("grab_control", Track_Select_Buttons);
+    alt_mode = 1;
 
     // default light
     update();
@@ -229,13 +231,11 @@ function update()
     var visible_tracks = liveSet.get("visible_tracks");
     var selected_track = liveSetView.get("selected_track");
     var tracks_to_show = visible_tracks.length/2-sessionBox.track_offset;
-    log(selected_track);
     
     //select
     for(var i=0; i<tracks_to_show; i++)
     {   
         track = new LiveAPI("live_set tracks " + (i+sessionBox.track_offset));
-        log(track.id);
         
         if (track.id == selected_track[1])
         {
@@ -269,18 +269,4 @@ function update()
         stateButtons[i].set_light(0);
         selectButtons[i].set_light(0);
     }
-}
-
-function obs()
-{
-    for(var i=0; i<256; i++)
-    {
-        o = new LiveAPI(ctr_path + " controls " + i.toString());
-        nam = o.get("name").toString();
-        //if (nam.indexOf("Session") !== -1)
-            log(i + " " + nam);
-    }
-
-    o = new LiveAPI(ctr_path + " 0 components 152");
-    log(o.info);
 }
